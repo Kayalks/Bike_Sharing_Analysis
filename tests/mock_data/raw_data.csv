@@ -1,0 +1,6 @@
+Rental Id,Start Date,Duration,StartStation Id
+1,2022-01-01 08:00:00,300,101
+2,2022-01-01 09:00:00,200,102
+3,2022-01-02 10:00:00,,103  # Missing Duration
+4,2022-01-03 11:00:00,400,  # Missing StartStation Id
+5,2022-01-03 12:00:00,250,104
