@@ -10,6 +10,7 @@ import numpy as np
 from sklearn.metrics import mean_squared_error, r2_score
 from statsmodels.tsa.arima.model import ARIMA
 from statsmodels.tsa.statespace.sarimax import SARIMAX
+from pmdarima import auto_arima
 from keras.models import Sequential
 from keras.layers import LSTM, Dense
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
@@ -74,17 +75,15 @@ for normalization in ["none", "minmax", "standard"]:
             train_scaled, train_scaler = normalize_data(train[target], method=normalization)
             test_scaled, test_scaler = normalize_data(test[target], method=normalization)
 
-        # 1. ARIMA
-        arima_model = ARIMA(train[target], order=(5, 1, 0))
-        arima_result = arima_model.fit()
-        arima_forecast = arima_result.forecast(steps=len(test))
+        # 1. Optimized ARIMA
+        arima_model = auto_arima(train[target], seasonal=False, trace=True, error_action='ignore', suppress_warnings=True, stepwise=True)
+        arima_forecast = arima_model.predict(n_periods=len(test))
         mse, r2 = evaluate_model(test[target], arima_forecast, 'ARIMA', split_name, normalization)
         save_predictions(test, arima_forecast, 'ARIMA', split_name, normalization)
 
-        # 2. SARIMA
-        sarima_model = SARIMAX(train[target], order=(1, 1, 1), seasonal_order=(1, 1, 1, 12))
-        sarima_result = sarima_model.fit()
-        sarima_forecast = sarima_result.forecast(steps=len(test))
+        # 2. Optimized SARIMA
+        sarima_model = auto_arima(train[target], seasonal=True, m=12, trace=True, error_action='ignore', suppress_warnings=True, stepwise=True)
+        sarima_forecast = sarima_model.predict(n_periods=len(test))
         mse, r2 = evaluate_model(test[target], sarima_forecast, 'SARIMA', split_name, normalization)
         save_predictions(test, sarima_forecast, 'SARIMA', split_name, normalization)
 
@@ -114,8 +113,8 @@ for normalization in ["none", "minmax", "standard"]:
 
         # 4. Ensemble (Average of ARIMA, SARIMA, and LSTM)
         ensemble_forecast = (
-            arima_forecast.values + 
-            sarima_forecast.values + 
+            arima_forecast + 
+            sarima_forecast + 
             (lstm_forecast_rescaled[:len(test)] if normalization != "none" else 0)
         ) / (3 if normalization != "none" else 2)
         mse, r2 = evaluate_model(test[target], ensemble_forecast, 'Ensemble', split_name, normalization)
