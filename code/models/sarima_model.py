@@ -1,17 +1,25 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Thu Dec 26 01:58:18 2024
-
-@author: Kayalvili
-"""
 
 from pmdarima import auto_arima
 from .base_model import TimeSeriesModel
 
 class SARIMAModel(TimeSeriesModel):
-    def fit(self):
+    def fit(self, order=None, seasonal_order=None):
         self.model = auto_arima(
-            self.train[self.target], seasonal=True, m=12, trace=False, error_action='ignore', suppress_warnings=True, stepwise=True
+            self.train[self.target],
+            seasonal=True,
+            m=12,
+            trace=False,
+            error_action='ignore',
+            suppress_warnings=True,
+            stepwise=True,
+            start_p=order[0] if order else None,
+            start_d=order[1] if order else None,
+            start_q=order[2] if order else None,
+            start_P=seasonal_order[0] if seasonal_order else None,
+            start_D=seasonal_order[1] if seasonal_order else None,
+            start_Q=seasonal_order[2] if seasonal_order else None,
+            seasonal_periods=seasonal_order[3] if seasonal_order else 12
         )
 
     def predict(self):

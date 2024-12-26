@@ -1,9 +1,4 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Thu Dec 26 01:57:21 2024
-
-@author: Kayalvili
-"""
 
 from abc import ABC, abstractmethod
 
