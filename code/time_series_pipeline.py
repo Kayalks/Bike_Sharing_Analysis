@@ -53,4 +53,59 @@ for normalization in normalizations:
         # Normalize data if required
         if normalization == "none":
             train_scaled, test_scaled = train, test
-            s
+            scaler = None
+        else:
+            train_scaled, scaler = normalize_data(train[target], method=normalization)
+            train[target] = train_scaled
+
+        # ARIMA model with hyperparameter tuning
+        best_arima_mse, best_arima_r2, best_arima_order = float("inf"), None, None
+        for params in arima_params:
+            arima = ARIMAModel(train, test, target)
+            arima.fit(order=(params["p"], params["d"], params["q"]))
+            arima_forecast = arima.predict()
+            mse, r2 = evaluate_model(test[target], arima_forecast)
+            if mse < best_arima_mse:
+                best_arima_mse, best_arima_r2, best_arima_order = mse, r2, (params["p"], params["d"], params["q"])
+        performance_results.append({
+            'Model': 'ARIMA', 'Split': split_name, 'Normalization': normalization, 'MSE': best_arima_mse, 'R-squared': best_arima_r2, 'Best Params': best_arima_order
+        })
+
+        # SARIMA model with hyperparameter tuning
+        best_sarima_mse, best_sarima_r2, best_sarima_order = float("inf"), None, None
+        for params in sarima_params:
+            sarima = SARIMAModel(train, test, target)
+            sarima.fit(order=(params["p"], params["d"], params["q"]), seasonal_order=(params["P"], params["D"], params["Q"], params["m"]))
+            sarima_forecast = sarima.predict()
+            mse, r2 = evaluate_model(test[target], sarima_forecast)
+            if mse < best_sarima_mse:
+                best_sarima_mse, best_sarima_r2, best_sarima_order = mse, r2, (params["p"], params["d"], params["q"], params["P"], params["D"], params["Q"], params["m"])
+        performance_results.append({
+            'Model': 'SARIMA', 'Split': split_name, 'Normalization': normalization, 'MSE': best_sarima_mse, 'R-squared': best_sarima_r2, 'Best Params': best_sarima_order
+        })
+
+        # LSTM model with hyperparameter tuning
+        best_lstm_mse, best_lstm_r2, best_lstm_params = float("inf"), None, None
+        if normalization != "none":
+            for params in lstm_params:
+                lstm = LSTMModel(train, test, target, scaler)
+                lstm.fit(
+                    n_lags=params["n_lags"],
+                    dropout_rate=params["dropout_rate"],
+                    learning_rate=params["learning_rate"],
+                    epochs=params["epochs"],
+                    batch_size=params["batch_size"]
+                )
+                lstm_forecast = lstm.predict()
+                mse, r2 = evaluate_model(test[target].iloc[params["n_lags"]:], lstm_forecast)
+                if mse < best_lstm_mse:
+                    best_lstm_mse, best_lstm_r2, best_lstm_params = mse, r2, params
+            performance_results.append({
+                'Model': 'LSTM', 'Split': split_name, 'Normalization': normalization, 'MSE': best_lstm_mse, 'R-squared': best_lstm_r2, 'Best Params': best_lstm_params
+            })
+
+# Save performance results
+performance_df = pd.DataFrame(performance_results)
+performance_df.to_csv('model_performance_results.csv', index=False)
+
+print("Model evaluation and hyperparameter tuning complete.")
