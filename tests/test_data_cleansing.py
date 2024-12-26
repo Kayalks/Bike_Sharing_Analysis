@@ -4,10 +4,10 @@ Created on Wed Dec 25 01:58:04 2024
 
 @author: Kayalvili
 """
-
 import pytest
 from pyspark.sql import SparkSession
 from pyspark.sql.types import StructType, StructField, StringType, IntegerType, DoubleType
+from pyspark.sql.functions import split, count, avg
 from utils.validation import validate_data
 from utils.data_transformation import transform_raw_data
 
@@ -23,7 +23,8 @@ def mock_raw_data(spark_session):
         StructField("Rental Id", StringType(), True),
         StructField("Start Date", StringType(), True),
         StructField("Duration", IntegerType(), True),
-        StructField("StartStation Id", StringType(), True)
+        StructField("StartStation Id", StringType(), True),
+        StructField("StartStation Name", StringType(), True)
     ])
     return spark_session.read.csv(raw_data_path, header=True, schema=schema)
 
@@ -47,21 +48,37 @@ def mock_weather_data(spark_session):
     return spark_session.read.csv(weather_data_path, header=True, schema=schema)
 
 def test_validate_raw_data(mock_raw_data):
-    required_columns = ["Rental Id", "Start Date", "Duration", "StartStation Id"]
-    with pytest.raises(ValueError):
-        validate_data(mock_raw_data, required_columns)
+    required_columns = ["Rental Id", "Start Date", "Duration", "StartStation Id", "StartStation Name"]
+    validate_data(mock_raw_data, required_columns)
 
 def test_validate_weather_data(mock_weather_data):
     required_columns = ["Year", "Month", "Day", "weather_code", "temperature(average)", "apparent_temperature(average)", "precipitation", "wind_speed", "humidity", "pressure", "cloud_cover"]
-    validate_data(mock_weather_data, required_columns)  # Should pass without errors
+    validate_data(mock_weather_data, required_columns)
 
-def test_merge_weather_and_raw(spark_session, mock_raw_data, mock_weather_data):
-    # Transform mock_raw_data for joining
-    transformed_raw_data = transform_raw_data(mock_raw_data)
+def test_borough_extraction(mock_raw_data):
+    transformed = mock_raw_data.withColumn("Borough", split(mock_raw_data["StartStation Name"], ",").getItem(1))
+    assert transformed.filter(transformed["Borough"].isNull()).count() == 0
 
-    # Perform the join
-    joined_df = transformed_raw_data.join(mock_weather_data, on=["Year", "Month", "Day"], how="left")
+def test_demand_aggregation(mock_raw_data, spark_session):
+    transformed = transform_raw_data(mock_raw_data)
+    demand_data = transformed.groupBy("Year", "Month", "Day", "Hour").agg(count("Rental Id").alias("Demand"))
+    assert demand_data.count() > 0
 
-    # Validate the join
-    assert joined_df.count() == transformed_raw_data.count()
-    assert joined_df.filter(joined_df["weather_code"].isNull()).count() == 0
+def test_duration_aggregation_by_borough(mock_raw_data, spark_session):
+    transformed = transform_raw_data(mock_raw_data)
+    transformed = transformed.withColumn("Borough", split(transformed["StartStation Name"], ",").getItem(1))
+    duration_data = transformed.groupBy("Year", "Month", "Day", "Borough").agg(avg("Duration").alias("AverageDuration"))
+    assert duration_data.count() > 0
+
+def test_weather_merge_demand(mock_weather_data, spark_session, mock_raw_data):
+    transformed = transform_raw_data(mock_raw_data)
+    demand_data = transformed.groupBy("Year", "Month", "Day", "Hour").agg(count("Rental Id").alias("Demand"))
+    merged_data = demand_data.join(mock_weather_data, on=["Year", "Month", "Day"], how="left")
+    assert merged_data.filter(merged_data["weather_code"].isNull()).count() == 0
+
+def test_weather_merge_duration(mock_weather_data, spark_session, mock_raw_data):
+    transformed = transform_raw_data(mock_raw_data)
+    transformed = transformed.withColumn("Borough", split(transformed["StartStation Name"], ",").getItem(1))
+    duration_data = transformed.groupBy("Year", "Month", "Day", "Borough").agg(avg("Duration").alias("AverageDuration"))
+    merged_data = duration_data.join(mock_weather_data, on=["Year", "Month", "Day"], how="left")
+    assert merged_data.filter(merged_data["weather_code"].isNull()).count() == 0
