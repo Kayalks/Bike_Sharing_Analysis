@@ -9,6 +9,7 @@ from models.lstm_model import LSTMModel
 from utils.model_utils import evaluate_model, normalize_data
 import logging
 import json
+from datetime import datetime
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -59,17 +60,20 @@ lstm_params = ParameterGrid({
 
 # Save the best models and performance metrics
 def save_best_model(model, model_name):
-    """Save the best model to a file."""
-    filename = f"{model_name}_best_model.pkl"
+    """Save the best model to a file with versioning."""
+    version = datetime.now().strftime('%Y_%m')
+    filename = f"{model_name}_best_model_{version}.pkl"
     with open(filename, 'wb') as f:
         pickle.dump(model, f)
     logging.info(f"Saved {model_name} best model to {filename}")
 
 def save_performance_metrics(metrics):
-    """Save performance metrics to a JSON file."""
-    with open("model_performance_metrics.json", 'w') as f:
+    """Save performance metrics to a JSON file with versioning."""
+    version = datetime.now().strftime('%Y_%m')
+    filename = f"model_performance_metrics_{version}.json"
+    with open(filename, 'w') as f:
         json.dump(metrics, f, indent=4)
-    logging.info("Saved performance metrics to model_performance_metrics.json")
+    logging.info(f"Saved performance metrics to {filename}")
 
 # Main pipeline for training and evaluating models
 for normalization in normalizations:

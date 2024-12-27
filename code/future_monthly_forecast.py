@@ -1,22 +1,28 @@
 # -*- coding: utf-8 -*-
-"""
-Created on Fri Dec 27 18:22:13 2024
-
-@author: Kayalvili
-"""
-
 import pandas as pd
 from datetime import datetime
+from dateutil.relativedelta import relativedelta
 from models.arima_model import ARIMAModel
 from models.sarima_model import SARIMAModel
 from models.lstm_model import LSTMModel
 from utils.model_utils import normalize_data
 import logging
 import pickle
+from keras.models import load_model
 import numpy as np
+import glob
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+# Helper to fetch latest model path
+def get_latest_model_path(model_name, extension="pkl"):
+    """Fetch the latest version of the model file."""
+    files = glob.glob(f"{model_name}_best_model_*.{extension}")
+    if not files:
+        raise FileNotFoundError(f"No saved models found for {model_name}.")
+    latest_file = max(files, key=lambda x: datetime.strptime(x.split('_')[-1].replace(f'.{extension}', ''), '%Y_%m'))
+    return latest_file
 
 try:
     # Load and preprocess data
@@ -32,44 +38,40 @@ except Exception as e:
     logging.error(f"An error occurred while loading data: {e}")
     raise
 
-# Configuration
-forecast_start = datetime(2024, 1, 1, 0, 0)
-forecast_horizon = 31 * 24  # 31 days * 24 hours
+# Dynamic Configuration
+forecast_start = datetime.now().replace(day=1) + relativedelta(months=1)
+forecast_horizon = (forecast_start + relativedelta(months=1) - forecast_start).days * 24
+output_filename = f"demand_forecast_{forecast_start.strftime('%Y_%m')}.csv"
 
 # Load the best ARIMA model
 try:
     logging.info("Loading best ARIMA model...")
-    with open("ARIMA_best_model.pkl", 'rb') as f:
+    arima_path = get_latest_model_path("ARIMA")
+    with open(arima_path, 'rb') as f:
         arima_model = pickle.load(f)
-except FileNotFoundError:
-    logging.error("ARIMA model file not found. Ensure 'ARIMA_best_model.pkl' exists.")
-    raise
+    logging.info(f"Loaded ARIMA model from {arima_path}.")
 except Exception as e:
-    logging.error(f"An error occurred while loading the ARIMA model: {e}")
+    logging.error(f"Error loading ARIMA model: {e}")
     raise
 
 # Load the best SARIMA model
 try:
     logging.info("Loading best SARIMA model...")
-    with open("SARIMA_best_model.pkl", 'rb') as f:
+    sarima_path = get_latest_model_path("SARIMA")
+    with open(sarima_path, 'rb') as f:
         sarima_model = pickle.load(f)
-except FileNotFoundError:
-    logging.error("SARIMA model file not found. Ensure 'SARIMA_best_model.pkl' exists.")
-    raise
+    logging.info(f"Loaded SARIMA model from {sarima_path}.")
 except Exception as e:
-    logging.error(f"An error occurred while loading the SARIMA model: {e}")
+    logging.error(f"Error loading SARIMA model: {e}")
     raise
 
 # Load the best LSTM model
 try:
     logging.info("Loading best LSTM model...")
-    from keras.models import load_model
     lstm_model = load_model("LSTM_best_model.h5")
-except FileNotFoundError:
-    logging.error("LSTM model file not found. Ensure 'LSTM_best_model.h5' exists.")
-    raise
+    logging.info("Loaded LSTM model from LSTM_best_model.h5.")
 except Exception as e:
-    logging.error(f"An error occurred while loading the LSTM model: {e}")
+    logging.error(f"Error loading LSTM model: {e}")
     raise
 
 # Normalize data for LSTM
@@ -120,8 +122,8 @@ except Exception as e:
 try:
     logging.info("Combining forecast results...")
     forecast_result = pd.concat([arima_result, sarima_result, lstm_result], axis=1)
-    forecast_result.to_csv('demand_forecast_2024_01.csv')
-    logging.info("Forecast for January 2024 saved to 'demand_forecast_2024_01.csv'.")
+    forecast_result.to_csv(output_filename)
+    logging.info(f"Forecast saved to {output_filename}.")
 except Exception as e:
     logging.error(f"Error saving forecast results: {e}")
     raise
