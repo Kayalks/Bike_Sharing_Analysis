@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 import pandas as pd
 import numpy as np
+import pickle
 from sklearn.model_selection import ParameterGrid
 from models.arima_model import ARIMAModel
 from models.sarima_model import SARIMAModel
 from models.lstm_model import LSTMModel
 from utils.model_utils import evaluate_model, normalize_data
 import logging
+import json
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -14,7 +16,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 try:
     # Load the processed demand data
     logging.info("Loading processed demand data...")
-    data = pd.read_csv("data/processed/demand/demand_data.csv")
+    data = pd.read_csv("data/processed/demand_data.csv")
     data['Date'] = pd.to_datetime(data[['Year', 'Month', 'Day']])
     data.set_index('Date', inplace=True)
 except FileNotFoundError:
@@ -55,6 +57,20 @@ lstm_params = ParameterGrid({
     "batch_size": [16, 32]
 })
 
+# Save the best models and performance metrics
+def save_best_model(model, model_name):
+    """Save the best model to a file."""
+    filename = f"{model_name}_best_model.pkl"
+    with open(filename, 'wb') as f:
+        pickle.dump(model, f)
+    logging.info(f"Saved {model_name} best model to {filename}")
+
+def save_performance_metrics(metrics):
+    """Save performance metrics to a JSON file."""
+    with open("model_performance_metrics.json", 'w') as f:
+        json.dump(metrics, f, indent=4)
+    logging.info("Saved performance metrics to model_performance_metrics.json")
+
 # Main pipeline for training and evaluating models
 for normalization in normalizations:
     for split_name, split_ratio in splits.items():
@@ -76,7 +92,7 @@ for normalization in normalizations:
                 train[target] = train_scaled
 
             # ARIMA model with hyperparameter tuning
-            best_arima_mse, best_arima_order = float("inf"), None
+            best_arima_mse, best_arima_order, best_arima_model = float("inf"), None, None
             for params in arima_params:
                 try:
                     arima = ARIMAModel(train, test, target)
@@ -84,16 +100,19 @@ for normalization in normalizations:
                     arima_forecast = arima.predict()
                     mse, _ = evaluate_model(test[target], arima_forecast)
                     if mse < best_arima_mse:
-                        best_arima_mse, best_arima_order = mse, (params["p"], params["d"], params["q"])
+                        best_arima_mse, best_arima_order, best_arima_model = mse, (params["p"], params["d"], params["q"]), arima.model
                 except Exception as e:
                     logging.warning(f"ARIMA tuning failed for params {params}: {e}")
+
+            if best_arima_model:
+                save_best_model(best_arima_model, "ARIMA")
 
             performance_results.append({
                 'Model': 'ARIMA', 'Split': split_name, 'Normalization': normalization, 'MSE': best_arima_mse, 'Best Params': best_arima_order
             })
 
             # SARIMA model with hyperparameter tuning
-            best_sarima_mse, best_sarima_order = float("inf"), None
+            best_sarima_mse, best_sarima_order, best_sarima_model = float("inf"), None, None
             for params in sarima_params:
                 try:
                     sarima = SARIMAModel(train, test, target)
@@ -101,16 +120,19 @@ for normalization in normalizations:
                     sarima_forecast = sarima.predict()
                     mse, _ = evaluate_model(test[target], sarima_forecast)
                     if mse < best_sarima_mse:
-                        best_sarima_mse, best_sarima_order = mse, ((params["p"], params["d"], params["q"]), (params["P"], params["D"], params["Q"], params["m"]))
+                        best_sarima_mse, best_sarima_order, best_sarima_model = mse, ((params["p"], params["d"], params["q"]), (params["P"], params["D"], params["Q"], params["m"])), sarima.model
                 except Exception as e:
                     logging.warning(f"SARIMA tuning failed for params {params}: {e}")
+
+            if best_sarima_model:
+                save_best_model(best_sarima_model, "SARIMA")
 
             performance_results.append({
                 'Model': 'SARIMA', 'Split': split_name, 'Normalization': normalization, 'MSE': best_sarima_mse, 'Best Params': best_sarima_order
             })
 
             # LSTM model with hyperparameter tuning
-            best_lstm_mse, best_lstm_params = float("inf"), None
+            best_lstm_mse, best_lstm_params, best_lstm_model = float("inf"), None, None
             for params in lstm_params:
                 try:
                     lstm = LSTMModel(train, test, target, scaler)
@@ -124,9 +146,13 @@ for normalization in normalizations:
                     lstm_forecast = lstm.predict()
                     mse, _ = evaluate_model(test[target].iloc[params["n_lags"]:], lstm_forecast)
                     if mse < best_lstm_mse:
-                        best_lstm_mse, best_lstm_params = mse, params
+                        best_lstm_mse, best_lstm_params, best_lstm_model = mse, params, lstm.model
                 except Exception as e:
                     logging.warning(f"LSTM tuning failed for params {params}: {e}")
+
+            if best_lstm_model:
+                lstm.model.save("LSTM_best_model.h5")
+                logging.info("Saved LSTM best model to LSTM_best_model.h5")
 
             performance_results.append({
                 'Model': 'LSTM', 'Split': split_name, 'Normalization': normalization, 'MSE': best_lstm_mse, 'Best Params': best_lstm_params
@@ -139,7 +165,8 @@ for normalization in normalizations:
 try:
     performance_df = pd.DataFrame(performance_results)
     performance_df.to_csv('model_performance_results.csv', index=False)
-    logging.info("Performance results saved successfully.")
+    save_performance_metrics(performance_results)
+    logging.info("Performance results and metrics saved successfully.")
 except Exception as e:
     logging.error(f"Failed to save performance results: {e}")
 
