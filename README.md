@@ -54,4 +54,10 @@ The analysis is based on two datasets:
 ## License
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
-This analysis and its content are copyrighted by the author and are for educational purposes only. Redistribution or commercial use without permission is prohibited.
+## Disclaimer
+This repository is the proprietary work of [Your Name] and is part of a Master's dissertation project. 
+
+### Licensing
+- **All Rights Reserved**: Unauthorized use, distribution, or reproduction of this repository is strictly prohibited.
+- For permission to use this work, please contact **[https://www.linkedin.com/in/kayalvizhiks/]**.
+
