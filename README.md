@@ -54,14 +54,10 @@ The analysis is based on two datasets:
 ## License
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
-All Rights Reserved
+## Disclaimer
+This repository is the proprietary work of [Your Name] and is part of a Master's dissertation project. 
 
-Copyright (c) 2024 [Kayalks]
+### Licensing
+- **All Rights Reserved**: Unauthorized use, distribution, or reproduction of this repository is strictly prohibited.
+- For permission to use this work, please contact **[https://www.linkedin.com/in/kayalvizhiks/]**.
 
-This repository and its contents, including but not limited to code, data, and documentation, are the proprietary work of [Kayalvizhi Kamatchi Selvaraj]. No part of this repository may be reproduced, distributed, or used in any form without prior written permission from the author.
-
-Permission is explicitly required for:
-- Use in academic or commercial projects.
-- Distribution or modification of the contents of this repository.
-
-To request permission, contact **[https://www.linkedin.com/in/kayalvizhiks/]**.
