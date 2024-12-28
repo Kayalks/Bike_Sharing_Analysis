@@ -1,0 +1,6 @@
+temperature,humidity,precipitation,apparent temperature,pressure,cloud_cover,wind_speed,Public Holiday,Working Day,Weekday,Average Duration
+15,60,0,16,1012,40,5,0,1,1,12
+18,65,0.1,19,1013,50,6,0,1,2,15
+21,70,0,22,1011,60,4,0,1,3,14
+17,68,0.2,18,1014,50,7,1,0,4,18
+20,72,0,21,1012,40,5,0,1,5,13
