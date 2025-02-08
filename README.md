@@ -53,5 +53,5 @@ This repository is the proprietary work of [Kayalks](NOTICE) and is part of a Ma
 
 ### Licensing
 - **All Rights Reserved**: Unauthorized use, distribution, or reproduction of this repository is strictly prohibited.
-- For permission to use this work, please contact **[https://www.linkedin.com/in/kayalvizhiks/]**.
+- For permission to use this work, please contact **[Kayalvizhi Selvaraj](https://www.linkedin.com/in/kayalvizhiks/)**.
 
