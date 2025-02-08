@@ -49,7 +49,7 @@ The analysis is based on two datasets:
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
 ## Disclaimer
-This repository is the proprietary work of [Kayalks] and is part of a Master's dissertation project. 
+This repository is the proprietary work of [Kayalks](NOTICE) and is part of a Master's dissertation project. 
 
 ### Licensing
 - **All Rights Reserved**: Unauthorized use, distribution, or reproduction of this repository is strictly prohibited.
