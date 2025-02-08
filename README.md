@@ -44,18 +44,12 @@ The analysis is based on two datasets:
   - Experiment with Transformer-based models and NeuralProphet for forecasting.
 - **Integration**:
   - Build a dashboard for real-time visualization and decision-making.
-
-## How to Use
-  **Clone the Repository**:
-   ```bash
-   git clone <repository-url>
-   cd <repository-directory>
-   ```
+  
 ## License
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
 ## Disclaimer
-This repository is the proprietary work of [Your Name] and is part of a Master's dissertation project. 
+This repository is the proprietary work of [Kayalks] and is part of a Master's dissertation project. 
 
 ### Licensing
 - **All Rights Reserved**: Unauthorized use, distribution, or reproduction of this repository is strictly prohibited.
